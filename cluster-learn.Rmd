@@ -1,0 +1,32 @@
+---
+title: "cluster"
+author: "susie"
+date: "2019年3月10日"
+output: html_document
+---
+
+## hierarchical clustering / system clustering
+
+```{r}
+head(iris) #import dataset iris
+data <- iris[,-5] #ignore the species 
+means <- sapply(data,mean) 
+SD <- sapply(data,sd)
+datascale <- scale(data, center = means, scale = SD) #scale the data
+Dist <- dist(datascale, method = 'euclidean') # euclidean distance matrix
+heatmap(as.matrix(Dist), labRow = FALSE, labCol = FALSE)
+clusteModel <- hclust(Dist, method = 'ward') # cluster, ward use 离散平方和
+result <- cutree(clusteModel, k=3) # use this fun to extract the category to which each variable belongs to
+table(iris[,5], result) # observe, virginica got 23 samples wrong
+plot(clusteModel) #plot the model
+```
+
+## 
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
