@@ -1,0 +1,160 @@
+---
+title: "statistical computing 3-7"
+author: "沈雨薇 2016200620"
+date: "2019年3月11日"
+output: html_document
+---
+
+## 条件分布抽样法
+
+### 1. $X=(x_1,x_2,...,x_p)^T, x_i \in [0,1]$
+$F(x_1,x_2,x_3,...,x_n)=x_1^{p-1}+x_2^{p-1}+...+x_p^{p-1}$
+
+解得密度函数
+$$
+f_1(x_1) = x_1^{p-1} + \frac{p-1}{p}\\
+f_2(x_2|x_1) = \frac{1}{f_1(x_1)}(x_1^{p-1} + x_@^{p-1} + \frac{p-1}{p}) \\
+...\\
+f_p(x_p|x_1,...x_{p-1}) = \frac{f(x)}{f_1(x_1)...f_{p-1}(x_{p-1}|x_1,..x_{p-2})}
+
+$$
+
+构建模拟函数,其中p是维数，n是模拟次数，返回模拟的随机向量，结果存储在list中.
+```{r}
+
+simu_add <-function(p, n=1000){
+  result = list()
+  f<- function(sample,p,i=1,multi=1){ # 函数序列，i是脚标
+        return(1/multi*(sum(sample^(p-1))+(p-i)/p))
+      }
+  accept_rej_sample<-function(f,sample,p,f0,n,min=0,max=1,i=1,multi=1){ #舍选抽样法来生成符合特定密度函数的x
+      c = c()
+      while (length(c)< n){
+        r1 <- runif(1) #随机数1
+        r2 <- runif(1) #随机数2
+        sample <- c(sample, r1)
+        if ( r2 < f(sample,p,i,multi)/f0){ #比密度函数/上界小
+          c <- c(c,r1)
+        }
+    }
+    return (c)
+  }
+  data1 = accept_rej_sample(f,c(),p,1,n,multi=1)
+  for (i in 1:length(data1)){
+    x1 = data1[i]
+    sample = c(x1)
+    multi = f(x1,p)
+    for (j in 2:p){ # every dimension
+      xj = accept_rej_sample(f,sample,p,1,1,i=j,multi)
+      sample = c(sample, xj)
+      multi = multi * f(sample,p,j,multi)
+    }
+   result[i] = list(sample)
+  }
+  return(result)
+}
+
+simu_add(f,p=3,n=5) #当p=3时，产生5个样本
+```
+
+### 2. $Y=(y_1,y_2,...,y_p)^T,y_i \in [0,1]$
+$g(Y)=(\frac{p-1}{p}+y_1^{p-1})(\frac{p-1}{p}+y_2^{p-1})...(\frac{p-1}{p}+y_p^{p-1}) $
+
+根据条件密度公式将原式分解
+$$
+g_1(y_1)=\frac{p-1}{p}+y_1^{p-1}\\
+g_2(y_2)=\frac{p-1}{p}+y_2^{p-1}\\
+...\\
+g_p(y_p)=\frac{p-1}{p}+y_p^{p-1}
+$$
+
+在具体的程序实现上，和前面的函数框架类似，只需要在该框架的基础上修改函数序列的值即可。
+```{r}
+simu_multi <-function(p, n=1000){
+  result = list()
+  f<- function(sample,p,i=1,multi=1){ # 函数序列，i是脚标
+        return(sample[i]^p+(p-1)/p)
+      }
+  accept_rej_sample<-function(f,sample,p,f0,n,min=0,max=1,i=1,multi=1){ #舍选抽样法来生成符合特定密度函数的x
+      c = c()
+      while (length(c)< n){
+        r1 <- runif(1) #随机数1
+        r2 <- runif(1) #随机数2
+        sample <- c(sample, r1)
+        if ( r2 < f(sample,p,i,multi)/f0){ #比密度函数/上界小
+          c <- c(c,r1)
+        }
+    }
+    return (c)
+  }
+  data1 = accept_rej_sample(f,c(),p,1,n,multi=1)
+  for (i in 1:length(data1)){
+    x1 = data1[i]
+    sample = c(x1)
+    multi = f(x1,p)
+    for (j in 2:p){ # every dimension
+      xj = accept_rej_sample(f,sample,p,1,1,i=j)
+      sample = c(sample, xj)
+      multi = multi * f(sample,p,j)
+    }
+   result[i] = list(sample)
+  }
+  return(result)
+}
+
+simu_multi(p=3,n=5) #当p=3时，产生5个样本
+```
+
+## 舍选抽样法
+
+### 1. 对相加形式的函数$f(x)$
+由于$f(x)$是有上届的，故可以用舍选抽样法。上界$f_0=1$
+
+```{r}
+accept_rej_sample <- function(p,f0,n){ #舍选抽样法来生成符合特定密度函数的x
+      result <- list()
+      
+      j <- 1
+      f <- function(sample,p){
+        return(sum(sample^(p-1)))
+      }
+      while (length(result)< n){
+        r0 <- runif(1)
+        sample <- runif(p)
+        if ( r0 < f(sample,p)/f0){ #比密度函数/上界小
+          result[j] <- list(sample)
+          j <- j+1
+        }
+    }
+    return (result)
+}
+
+accept_rej_sample(3,1,5)
+```
+
+
+### 2. 对相乘形式的函数$g(x)$
+
+```{r}
+accept_rej_sample <- function(p,f0,n){ #舍选抽样法来生成符合特定密度函数的x
+      result <- list()
+      j <- 1
+      g <- function(sample,p){
+        return(prod(sample^(p-1)+(p-1)/p))
+      }
+      while (length(result)< n){
+        r0 <- runif(1)
+        sample <- runif(p)
+      
+        if ( r0 < g(sample,p)/f0){ #比密度函数/上界小
+          result[j] <- list(sample)
+          j <- j+1
+        }
+    }
+    return (result)
+}
+
+accept_rej_sample(3,1,5)
+
+```
+
