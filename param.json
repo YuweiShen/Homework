@@ -1,0 +1,17 @@
+{
+		"name": "adult",
+		"train": "data/adult.csv",	
+		"batch_size": 200,
+		"sample_rows": 20000,
+		"input_dim": 16,
+		"encoder_dim": 600,
+		"encoder_out_dim": 400,
+		"decoder_dim": 200,
+		"latent_dim": 3,
+		"lr": 0.0001,
+		"epochs": 5,
+		"steps_per_epoch": 2000,
+		"no_cuda": 1,
+		"continuous_cols": [0, 2, 4,10, 11, 12],
+		"noise": 0.2
+}
